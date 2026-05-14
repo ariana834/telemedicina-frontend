@@ -6,6 +6,7 @@ import { getDoctors } from '../api/doctors'
 import { Alert, AlertTitle } from '@mui/material'
 import { Box, Typography, Grid, Card, CardActionArea, CardContent,
     Chip, Avatar, Skeleton, Button } from '@mui/material'
+import SubscriptionBanner from '../components/SubscriptionBanner';
 
 // Health tips — se rotesc după ziua săptămânii
 const healthTips = [
@@ -98,24 +99,7 @@ export default function DashboardPage() {
                     </Alert>
                 )}
 
-                {/* Banner abonament */}
-                <Box sx={{
-                    backgroundColor: '#6B5940',
-                    borderRadius: 2, p: 2.5, mb: 4,
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    flexWrap: 'wrap', gap: 2,
-                }}>
-                    <Box>
-                        <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', letterSpacing: '0.1em', mb: 0.5 }}>
-                            ACTIVE SUBSCRIPTION
-                        </Typography>
-                        <Typography sx={{ color: 'white', fontWeight: 600 }}>
-                            Monthly Plan · expires Jun 14, 2026
-                        </Typography>
-                    </Box>
-                    <Chip label="ACTIVE" size="small"
-                          sx={{ backgroundColor: 'rgba(255,255,255,0.15)', color: 'white', fontWeight: 600, fontSize: '0.7rem' }} />
-                </Box>
+                <SubscriptionBanner />
 
                 {/* Quick actions */}
                 <Typography sx={{ fontSize: '0.7rem', letterSpacing: '0.1em', color: 'text.secondary', mb: 1.5 }}>

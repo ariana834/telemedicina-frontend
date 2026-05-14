@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import { registerRequest } from '../api/auth'
 
 // Importăm BrandPanel — același panel maro ca la Login
-// (poți muta BrandPanel într-un fișier separat src/components/BrandPanel.jsx)
 function BrandPanel() {
     return (
         <Box sx={{

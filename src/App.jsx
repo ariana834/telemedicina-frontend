@@ -4,6 +4,7 @@ import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import ProfilePage from './pages/ProfilePage'
+import SubscriptionPage from './pages/SubscriptionPage';
 
 export default function App() {
     return (
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/profile" element={
                 <ProtectedRoute><ProfilePage /></ProtectedRoute>
             } />
+            <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
         </Routes>
     )
 }
