@@ -5,6 +5,7 @@ import DashboardPage from './pages/DashboardPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import ProfilePage from './pages/ProfilePage'
 import SubscriptionPage from './pages/SubscriptionPage';
+import NewConsultationPage from './pages/NewConsultationPage';
 
 export default function App() {
     return (
@@ -21,6 +22,7 @@ export default function App() {
                 <ProtectedRoute><ProfilePage /></ProtectedRoute>
             } />
             <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
+            <Route path="/consultations/new" element={<ProtectedRoute><NewConsultationPage /></ProtectedRoute>} />
         </Routes>
     )
 }
