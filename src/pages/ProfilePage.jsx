@@ -11,7 +11,6 @@ import { useAuth } from '../context/AuthContext'
 import { createProfile } from '../api/patient'
 import axios from 'axios'
 import { API } from '../api/auth'
-import Sidebar from '../components/Sidebar'
 
 const GENDERS     = ['MALE', 'FEMALE', 'OTHER']
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
@@ -26,8 +25,8 @@ export default function ProfilePage() {
     const [activeStep,  setActiveStep]  = useState(0)
     const [patientId,   setPatientId]   = useState(profile?.id ?? null)
     const [ageCategory, setAgeCategory] = useState(profile?.ageCategory ?? null)
-    const [viewMode,    setViewMode]    = useState(false) // se setează după verificare
-    const [checking,    setChecking]    = useState(true)  // loading la verificare inițială
+    const [viewMode,    setViewMode]    = useState(false)
+    const [checking,    setChecking]    = useState(true)
 
     const [error,   setError]   = useState('')
     const [loading, setLoading] = useState(false)
@@ -52,28 +51,14 @@ export default function ProfilePage() {
     const setCond  = (f) => (e) => setNewCondition(prev => ({ ...prev, [f]: e.target.value }))
     const fieldSx  = { backgroundColor: '#FFFCF8' }
 
-    // La încărcare — verifică dacă profilul e complet
     useEffect(() => {
         const check = async () => {
-            if (!profile) {
-                // Nu are profil — rămâne la step 0
-                setChecking(false)
-                return
-            }
-
-            if (profile.ageCategory !== 'CHILD') {
-                // Adult/Senior — profilul e complet
-                setViewMode(true)
-                setChecking(false)
-                return
-            }
-
-            // Copil — verifică dacă are guardian
+            if (!profile) { setChecking(false); return }
+            if (profile.ageCategory !== 'CHILD') { setViewMode(true); setChecking(false); return }
             try {
                 await axios.get(`${API}/api/v1/patients/${profile.id}/guardian`, authHeader(token))
-                setViewMode(true) // Are guardian — complet
+                setViewMode(true)
             } catch {
-                // Nu are guardian — du-l la step 3
                 setPatientId(profile.id)
                 setAgeCategory(profile.ageCategory)
                 setActiveStep(2)
@@ -89,14 +74,13 @@ export default function ProfilePage() {
             setError('Please fill in all required fields.')
             return
         }
-        setError('')
-        setLoading(true)
+        setError(''); setLoading(true)
         try {
             const res = await createProfile(token, {
                 firstName: form.firstName, lastName: form.lastName,
                 birthDate: form.birthDate, gender:    form.gender,
-                bloodType: form.bloodType || null,   phone: form.phone    || null,
-                cnp:       form.cnp       || null, address: form.address  || null,
+                bloodType: form.bloodType || null, phone: form.phone || null,
+                cnp:       form.cnp       || null, address: form.address || null,
             })
             refreshProfile()
             setPatientId(res.data.id)
@@ -104,9 +88,7 @@ export default function ProfilePage() {
             setActiveStep(1)
         } catch (err) {
             setError(err.response?.data?.message ?? 'Could not save profile.')
-        } finally {
-            setLoading(false)
-        }
+        } finally { setLoading(false) }
     }
 
     const handleAddCondition = async () => {
@@ -118,9 +100,7 @@ export default function ProfilePage() {
             setNewCondition({ conditionName: '', severity: 'MILD', diagnosedDate: '' })
         } catch (err) {
             setError(err.response?.data?.message ?? 'Could not add condition.')
-        } finally {
-            setLoading(false)
-        }
+        } finally { setLoading(false) }
     }
 
     const handleSaveGuardian = async () => {
@@ -128,8 +108,7 @@ export default function ProfilePage() {
             setError('Please fill in guardian first and last name.')
             return
         }
-        setError('')
-        setLoading(true)
+        setError(''); setLoading(true)
         try {
             await axios.post(`${API}/api/v1/patients/${patientId}/guardian`, guardian, authHeader(token))
             setSuccess(true)
@@ -137,29 +116,21 @@ export default function ProfilePage() {
             setTimeout(() => navigate('/dashboard'), 1500)
         } catch (err) {
             setError(err.response?.data?.message ?? 'Could not save guardian.')
-        } finally {
-            setLoading(false)
-        }
+        } finally { setLoading(false) }
     }
 
-    if (checking) {
-        return (
-            <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F7F3EE' }}>
-                <Sidebar />
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CircularProgress sx={{ color: '#8B7355' }} />
-                </Box>
-            </Box>
-        )
-    }
+    if (checking) return (
+        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+            <CircularProgress sx={{ color: '#8B7355' }} />
+        </Box>
+    )
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F7F3EE' }}>
-            <Sidebar />
+        <Box sx={{ flex: 1, minHeight: '100vh', backgroundColor: '#F7F3EE' }}>
 
-            {/* ── VIEW MODE: profil complet ── */}
+            {/* ── VIEW MODE ── */}
             {viewMode && (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
+                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4, minHeight: '100vh' }}>
                     <Box sx={{ textAlign: 'center', maxWidth: 420 }}>
                         <Typography sx={{ fontSize: '4rem', mb: 2 }}>✅</Typography>
                         <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: '2rem', fontWeight: 600, color: '#2C2416', mb: 1 }}>
@@ -189,7 +160,7 @@ export default function ProfilePage() {
 
             {/* ── EDIT MODE ── */}
             {!viewMode && (
-                <Box sx={{ flex: 1, overflowY: 'auto', p: { xs: 3, sm: 5 } }}>
+                <Box sx={{ overflowY: 'auto', p: { xs: 3, sm: 5 } }}>
                     <Box sx={{ maxWidth: 680, mx: 'auto' }}>
 
                         <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: '2rem', fontWeight: 600, color: '#2C2416', mb: 0.5 }}>
@@ -233,9 +204,7 @@ export default function ProfilePage() {
                                         <TextField fullWidth required select label="Gender"
                                                    value={form.gender} onChange={set('gender')} sx={fieldSx}>
                                             {GENDERS.map(g => (
-                                                <MenuItem key={g} value={g}>
-                                                    {g.charAt(0) + g.slice(1).toLowerCase()}
-                                                </MenuItem>
+                                                <MenuItem key={g} value={g}>{g.charAt(0) + g.slice(1).toLowerCase()}</MenuItem>
                                             ))}
                                         </TextField>
                                     </Grid>
@@ -323,8 +292,7 @@ export default function ProfilePage() {
                                     </Grid>
                                     <Grid item xs={12} sm={1} sx={{ display: 'flex', alignItems: 'center' }}>
                                         <IconButton onClick={handleAddCondition} disabled={loading}
-                                                    sx={{ backgroundColor: '#8B7355', color: 'white', borderRadius: 1,
-                                                        '&:hover': { backgroundColor: '#6B5940' } }}>
+                                                    sx={{ backgroundColor: '#8B7355', color: 'white', borderRadius: 1, '&:hover': { backgroundColor: '#6B5940' } }}>
                                             <AddIcon />
                                         </IconButton>
                                     </Grid>
@@ -345,9 +313,7 @@ export default function ProfilePage() {
                                 {ageCategory !== 'CHILD' ? (
                                     <Box sx={{ textAlign: 'center', py: 6 }}>
                                         <Typography sx={{ fontSize: '3rem', mb: 2 }}>✅</Typography>
-                                        <Typography variant="h6" sx={{ color: '#2C2416', mb: 1 }}>
-                                            Profile complete!
-                                        </Typography>
+                                        <Typography variant="h6" sx={{ color: '#2C2416', mb: 1 }}>Profile complete!</Typography>
                                         <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
                                             Guardian information is only required for child patients.
                                         </Typography>

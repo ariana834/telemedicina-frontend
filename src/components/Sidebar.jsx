@@ -1,4 +1,4 @@
-import { Box, Typography, List, ListItem, ListItemIcon, ListItemText, Avatar, Divider } from '@mui/material'
+import { Box, Typography, List, ListItem, ListItemIcon, ListItemText, Avatar, Divider, Button } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import DashboardIcon     from '@mui/icons-material/GridViewRounded'
@@ -6,13 +6,16 @@ import ConsultIcon       from '@mui/icons-material/HealingRounded'
 import CalendarIcon      from '@mui/icons-material/CalendarMonthRounded'
 import PrescriptionIcon  from '@mui/icons-material/DescriptionRounded'
 import SubscriptionIcon  from '@mui/icons-material/CreditCardRounded'
+import ReferralIcon      from '@mui/icons-material/ScienceRounded'
 import LogoutIcon        from '@mui/icons-material/LogoutRounded'
+import AddIcon           from '@mui/icons-material/AddRounded'
 
 const navItems = [
     { label: 'Dashboard',     icon: <DashboardIcon />,    path: '/dashboard' },
     { label: 'Consultations', icon: <ConsultIcon />,      path: '/consultations' },
     { label: 'Appointments',  icon: <CalendarIcon />,     path: '/appointments' },
     { label: 'Prescriptions', icon: <PrescriptionIcon />, path: '/prescriptions' },
+    { label: 'Referrals',     icon: <ReferralIcon />,     path: '/referrals' },
     { label: 'Subscription',  icon: <SubscriptionIcon />, path: '/subscription' },
 ]
 
@@ -21,7 +24,6 @@ export default function Sidebar() {
     const location  = useLocation()
     const { user, logout, profile, email } = useAuth()
 
-// Numele din profil, sau emailul din JWT ca fallback
     // eslint-disable-next-line no-unused-vars
     const displayName = profile
         ? `${profile.firstName} ${profile.lastName}`
@@ -35,7 +37,7 @@ export default function Sidebar() {
 
     return (
         <Box sx={{
-            width: 220,
+            width: 260,
             minHeight: '100vh',
             backgroundColor: '#8B7355',
             display: 'flex',
@@ -55,8 +57,34 @@ export default function Sidebar() {
                 </Typography>
             </Box>
 
+            {/* New Consultation CTA */}
+            <Box sx={{ px: 1.5, pt: 2, pb: 1 }}>
+                <Button
+                    fullWidth
+                    startIcon={<AddIcon />}
+                    onClick={() => navigate('/consultations/new')}
+                    sx={{
+                        bgcolor: 'rgba(255,255,255,0.15)',
+                        color: 'white',
+                        borderRadius: 2,
+                        fontFamily: '"Lato", sans-serif',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        textTransform: 'none',
+                        border: '1px solid rgba(255,255,255,0.25)',
+                        py: 1,
+                        '&:hover': {
+                            bgcolor: 'rgba(255,255,255,0.25)',
+                            border: '1px solid rgba(255,255,255,0.4)',
+                        },
+                    }}
+                >
+                    New Consultation
+                </Button>
+            </Box>
+
             {/* Nav links */}
-            <List sx={{ flex: 1, px: 1, py: 2 }}>
+            <List sx={{ flex: 1, px: 1, py: 1 }}>
                 {navItems.map(({ label, icon, path }) => {
                     const active = location.pathname === path
                     return (
