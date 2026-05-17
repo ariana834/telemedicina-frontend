@@ -17,16 +17,19 @@ export function AuthProvider({ children }) {
     const [user,    setUser]    = useState(JSON.parse(localStorage.getItem("user")))
     const [profile, setProfile] = useState(null)
 
+    const decoded = token ? decodeJwt(token) : {}
+    const email   = decoded.sub || null
+    const role    = user?.role || decoded.role || null
+
     useEffect(() => {
-        if (!token) return
+        if (!token || role === 'DOCTOR') return
         getProfile(token)
             .then(res => setProfile(res.data))
             .catch(() => setProfile(null))
     }, [token])
 
-    // ← trebuie să fie AICI, înăuntru
     const refreshProfile = () => {
-        if (!token) return
+        if (!token || role === 'DOCTOR') return
         getProfile(token)
             .then(res => setProfile(res.data))
             .catch(() => setProfile(null))
@@ -47,10 +50,8 @@ export function AuthProvider({ children }) {
         setProfile(null)
     }
 
-    const email = token ? decodeJwt(token).sub : null
-
     return (
-        <AuthContext.Provider value={{ token, user, login, logout, profile, email, refreshProfile }}>
+        <AuthContext.Provider value={{ token, user, login, logout, profile, email, role, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     )

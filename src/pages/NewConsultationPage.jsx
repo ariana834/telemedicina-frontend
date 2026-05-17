@@ -52,81 +52,161 @@ const inputSx = {
     '& .MuiInputLabel-root.Mui-focused': { color: '#8B7355' },
 };
 
-function SymptomStep({ consultation, onSymptomAdded, onEmergency }) {
-    const { token } = useAuth();
-    const [symptomText, setSymptomText] = useState('');
-    const [severity, setSeverity]       = useState('MODERATE');
-    const [loading, setLoading]         = useState(false);
-    const [error, setError]             = useState('');
-    const [symptoms, setSymptoms]       = useState([]);
+const PREDEFINED_SYMPTOMS = [
+    { name: 'fever',           label: 'Fever',           icon: '🌡️' },
+    { name: 'abdominal pain',  label: 'Abdominal Pain',  icon: '🫃' },
+    { name: 'headache',        label: 'Headache',        icon: '🤕' },
+    { name: 'vomiting',        label: 'Vomiting',        icon: '🤢' },
+    { name: 'cough',           label: 'Cough',           icon: '😮‍💨' },
+    { name: 'chest pain',      label: 'Chest Pain',      icon: '💔' },
+    { name: 'breathing',       label: 'Breathing Diff.', icon: '😮' },
+    { name: 'fatigue',         label: 'Fatigue',         icon: '😴' },
+    { name: 'sore throat',     label: 'Sore Throat',     icon: '🔴' },
+    { name: 'ear pain',        label: 'Ear Pain',        icon: '👂' },
+    { name: 'rash',            label: 'Rash',            icon: '🔵' },
+    { name: 'no appetite',     label: 'No Appetite',     icon: '🍽️' },
+]
 
-    const count  = symptoms.length;
-    const canAdd = count < 3 && symptomText.trim().length >= 2;
+function SymptomStep({ consultation, onSymptomAdded, onEmergency }) {
+    const { token } = useAuth()
+    const [selected, setSelected]   = useState(null)   // symptom selectat din grid
+    const [severity, setSeverity]   = useState('MODERATE')
+    const [loading, setLoading]     = useState(false)
+    const [error, setError]         = useState('')
+    const [symptoms, setSymptoms]   = useState([])
+
+    const count  = symptoms.length
+    const canAdd = selected !== null && count < 3
+    const alreadyAdded = (name) => symptoms.some(s => s.name === name)
 
     const handleAdd = async () => {
-        if (!canAdd) return;
-        setLoading(true); setError('');
+        if (!canAdd) return
+        setLoading(true); setError('')
         try {
-            const updated = await addSymptom(token, consultation.id, symptomText.trim(), severity);
-            const newList = [...symptoms, { name: symptomText.trim(), severity }];
-            setSymptoms(newList);
-            setSymptomText(''); setSeverity('MODERATE');
-            if (updated.status === 'EMERGENCY_REDIRECT') { onEmergency(updated); return; }
-            if (updated.status === 'FORM_GENERATED' || newList.length === 3) { onSymptomAdded(updated); }
-        } catch (e) { setError(e.message); }
-        finally { setLoading(false); }
-    };
+            const updated = await addSymptom(token, consultation.id, selected.name, severity)
+            const newList = [...symptoms, { name: selected.name, severity }]
+            setSymptoms(newList)
+            setSelected(null); setSeverity('MODERATE')
+            if (updated.status === 'EMERGENCY_REDIRECT') { onEmergency(updated); return }
+            if (updated.status === 'FORM_GENERATED' || newList.length === 3) { onSymptomAdded(updated) }
+        } catch (e) { setError(e.message) }
+        finally { setLoading(false) }
+    }
 
     return (
         <Fade in timeout={400}>
             <Box>
-                <Typography sx={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 600, color: '#3D2E1E', mb: 0.5 }}>Describe your symptoms</Typography>
-                <Typography sx={{ fontFamily: 'Lato', color: '#9E8B72', fontSize: '0.88rem', mb: 3 }}>Add up to 3 main symptoms. After the third, our system will generate a personalized medical form.</Typography>
+                <Typography sx={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.4rem', fontWeight: 600, color: '#3D2E1E', mb: 0.5 }}>
+                    Describe your symptoms
+                </Typography>
+                <Typography sx={{ fontFamily: 'Lato', color: '#9E8B72', fontSize: '0.88rem', mb: 3 }}>
+                    Add up to 3 main symptoms. After the third, our system will generate a personalized medical form.
+                </Typography>
 
+                {/* Simptome adăugate */}
                 <Stack spacing={1.5} sx={{ mb: 3 }}>
                     {[0, 1, 2].map((i) => {
-                        const s = symptoms[i];
+                        const s = symptoms[i]
                         return (
-                            <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.8, borderRadius: 2, border: s ? '1.5px solid #C8B8A2' : '1.5px dashed #D8CFC4', bgcolor: s ? 'rgba(139,115,85,0.05)' : 'transparent', transition: 'all 0.2s' }}>
+                            <Box key={i} sx={{
+                                display: 'flex', alignItems: 'center', gap: 1.5, p: 1.8, borderRadius: 2,
+                                border: s ? '1.5px solid #C8B8A2' : '1.5px dashed #D8CFC4',
+                                bgcolor: s ? 'rgba(139,115,85,0.05)' : 'transparent', transition: 'all 0.2s',
+                            }}>
                                 <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: s ? '#8B7355' : '#EDE5D8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                    {s ? <CheckCircleIcon sx={{ fontSize: '1rem', color: '#FFFCF8' }} /> : <Typography sx={{ fontFamily: 'Lato', fontWeight: 700, color: '#9E8B72', fontSize: '0.78rem' }}>{i + 1}</Typography>}
+                                    {s ? <CheckCircleIcon sx={{ fontSize: '1rem', color: '#FFFCF8' }} />
+                                        : <Typography sx={{ fontFamily: 'Lato', fontWeight: 700, color: '#9E8B72', fontSize: '0.78rem' }}>{i + 1}</Typography>}
                                 </Box>
                                 {s ? (
                                     <Box sx={{ flex: 1 }}>
-                                        <Typography sx={{ fontFamily: 'Lato', fontWeight: 700, color: '#5C4A32', fontSize: '0.9rem' }}>{s.name}</Typography>
-                                        <Chip label={s.severity} size="small" sx={{ mt: 0.3, fontSize: '0.7rem', fontFamily: 'Lato', fontWeight: 700, bgcolor: SEVERITY_OPTIONS.find(x => x.value === s.severity)?.bg, color: SEVERITY_OPTIONS.find(x => x.value === s.severity)?.color }} />
+                                        <Typography sx={{ fontFamily: 'Lato', fontWeight: 700, color: '#5C4A32', fontSize: '0.9rem', textTransform: 'capitalize' }}>{s.name}</Typography>
+                                        <Chip label={s.severity} size="small" sx={{ mt: 0.3, fontSize: '0.7rem', fontFamily: 'Lato', fontWeight: 700,
+                                            bgcolor: SEVERITY_OPTIONS.find(x => x.value === s.severity)?.bg,
+                                            color: SEVERITY_OPTIONS.find(x => x.value === s.severity)?.color }} />
                                     </Box>
                                 ) : (
-                                    <Typography sx={{ fontFamily: 'Lato', color: '#B0A090', fontSize: '0.85rem', fontStyle: 'italic' }}>{count === i ? 'Next symptom' : `Symptom ${i + 1}`}</Typography>
+                                    <Typography sx={{ fontFamily: 'Lato', color: '#B0A090', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                                        {count === i ? 'Next symptom' : `Symptom ${i + 1}`}
+                                    </Typography>
                                 )}
                             </Box>
-                        );
+                        )
                     })}
                 </Stack>
 
-                <Collapse in={!!error}><Alert severity="error" sx={{ mb: 2, borderRadius: 2, fontFamily: 'Lato' }} onClose={() => setError('')}>{error}</Alert></Collapse>
+                <Collapse in={!!error}>
+                    <Alert severity="error" sx={{ mb: 2, borderRadius: 2, fontFamily: 'Lato' }} onClose={() => setError('')}>{error}</Alert>
+                </Collapse>
 
                 {count < 3 && (
                     <Card elevation={0} sx={{ border: '1.5px solid #EDE5D8', borderRadius: 2, p: 2.5, bgcolor: '#FFFCF8' }}>
-                        <Typography sx={{ fontFamily: 'Lato', fontWeight: 700, color: '#5C4A32', fontSize: '0.85rem', mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>Symptom {count + 1} of 3</Typography>
-                        <TextField fullWidth label="Describe symptom" placeholder="e.g. headache, fever, abdominal pain..." value={symptomText} onChange={(e) => setSymptomText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && canAdd && handleAdd()} disabled={loading} size="small" sx={{ ...inputSx, mb: 2 }} />
-                        <Typography sx={{ fontFamily: 'Lato', fontSize: '0.8rem', color: '#9E8B72', mb: 1 }}>Severity</Typography>
-                        <Box sx={{ display: 'flex', gap: 1, mb: 2.5 }}>
-                            {SEVERITY_OPTIONS.map((opt) => (
-                                <Box key={opt.value} onClick={() => setSeverity(opt.value)} sx={{ flex: 1, textAlign: 'center', py: 1, borderRadius: 1.5, border: severity === opt.value ? `2px solid ${opt.color}` : '1.5px solid #EDE5D8', bgcolor: severity === opt.value ? opt.bg : 'transparent', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { borderColor: opt.color } }}>
-                                    <Typography sx={{ fontFamily: 'Lato', fontWeight: 700, fontSize: '0.8rem', color: severity === opt.value ? opt.color : '#9E8B72' }}>{opt.label}</Typography>
-                                </Box>
-                            ))}
+                        <Typography sx={{ fontFamily: 'Lato', fontWeight: 700, color: '#5C4A32', fontSize: '0.85rem', mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            Symptom {count + 1} of 3 — Select from list
+                        </Typography>
+
+                        {/* Grid simptome predefinite */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, mb: 2.5 }}>
+                            {PREDEFINED_SYMPTOMS.map((s) => {
+                                const isSelected = selected?.name === s.name
+                                const isAdded    = alreadyAdded(s.name)
+                                return (
+                                    <Box key={s.name}
+                                         onClick={() => !isAdded && setSelected(isSelected ? null : s)}
+                                         sx={{
+                                             p: 1.5, borderRadius: 2, textAlign: 'center', cursor: isAdded ? 'not-allowed' : 'pointer',
+                                             border: isSelected ? '2px solid #8B7355' : '1.5px solid #EDE5D8',
+                                             bgcolor: isAdded ? '#F5F0EA' : isSelected ? 'rgba(139,115,85,0.1)' : 'transparent',
+                                             opacity: isAdded ? 0.45 : 1,
+                                             transition: 'all 0.15s',
+                                             '&:hover': { borderColor: isAdded ? '#EDE5D8' : '#8B7355', bgcolor: isAdded ? '#F5F0EA' : 'rgba(139,115,85,0.05)' },
+                                         }}>
+                                        <Typography sx={{ fontSize: '1.4rem', mb: 0.3 }}>{s.icon}</Typography>
+                                        <Typography sx={{ fontFamily: 'Lato', fontSize: '0.75rem', fontWeight: isSelected ? 700 : 500, color: isSelected ? '#8B7355' : '#6B5A47' }}>
+                                            {s.label}
+                                        </Typography>
+                                    </Box>
+                                )
+                            })}
                         </Box>
-                        <Button fullWidth variant="contained" disabled={!canAdd || loading} onClick={handleAdd} startIcon={loading ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : <AddCircleOutlinedIcon />}
-                                sx={{ fontFamily: 'Lato', fontWeight: 700, py: 1.2, borderRadius: 2, bgcolor: '#8B7355', '&:hover': { bgcolor: '#7A6348' }, '&:disabled': { bgcolor: '#D4C9B8', color: '#9E8B72' } }}>
+
+                        {/* Severity */}
+                        {selected && (
+                            <Fade in timeout={200}>
+                                <Box>
+                                    <Typography sx={{ fontFamily: 'Lato', fontSize: '0.8rem', color: '#9E8B72', mb: 1 }}>
+                                        Severity for <strong style={{ color: '#5C4A32' }}>{selected.label}</strong>
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', gap: 1, mb: 2.5 }}>
+                                        {SEVERITY_OPTIONS.map((opt) => (
+                                            <Box key={opt.value} onClick={() => setSeverity(opt.value)} sx={{
+                                                flex: 1, textAlign: 'center', py: 1, borderRadius: 1.5,
+                                                border: severity === opt.value ? `2px solid ${opt.color}` : '1.5px solid #EDE5D8',
+                                                bgcolor: severity === opt.value ? opt.bg : 'transparent',
+                                                cursor: 'pointer', transition: 'all 0.15s',
+                                                '&:hover': { borderColor: opt.color },
+                                            }}>
+                                                <Typography sx={{ fontFamily: 'Lato', fontWeight: 700, fontSize: '0.8rem', color: severity === opt.value ? opt.color : '#9E8B72' }}>
+                                                    {opt.label}
+                                                </Typography>
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                </Box>
+                            </Fade>
+                        )}
+
+                        <Button fullWidth variant="contained" disabled={!canAdd || loading} onClick={handleAdd}
+                                startIcon={loading ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : <AddCircleOutlinedIcon />}
+                                sx={{ fontFamily: 'Lato', fontWeight: 700, py: 1.2, borderRadius: 2,
+                                    bgcolor: '#8B7355', '&:hover': { bgcolor: '#7A6348' },
+                                    '&:disabled': { bgcolor: '#D4C9B8', color: '#9E8B72' } }}>
                             {loading ? 'Adding...' : count === 2 ? 'Add & Generate Form' : `Add Symptom ${count + 1}`}
                         </Button>
                     </Card>
                 )}
             </Box>
         </Fade>
-    );
+    )
 }
 
 function MedicalFormStep({ consultationId, onFormSubmitted }) {
@@ -455,7 +535,7 @@ export default function NewConsultationPage() {
                     setActiveStep(resumeStep - 1);
                 }
             })
-            .catch(e => setCreateError('Could not resume consultation.'))
+            .catch(() => setCreateError('Could not resume consultation.'))
             .finally(() => setCreating(false));
     }, [searchParams, token]);
 

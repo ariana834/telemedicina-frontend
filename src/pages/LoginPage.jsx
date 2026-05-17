@@ -71,7 +71,11 @@ export default function LoginPage() {
         try {
             const res = await loginRequest(email, password)
             login(res.data.token, res.data)
-            navigate('/dashboard')
+            if (res.data.role === 'DOCTOR') {
+                navigate('/doctor/dashboard')
+            } else {
+                navigate('/dashboard')
+            }
         } catch {
             setError('Email sau parolă incorectă.')
         } finally {
