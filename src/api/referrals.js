@@ -11,6 +11,16 @@ export const getReferralById = (token, id) =>
     }).then((r) => r.json());
 
 export const getReferralByConsultation = (token, consultationId) =>
-    fetch(`${API}/api/referrals/consultation/${consultationId}`, {
+    fetch(`${API}/api/v1/referrals/consultation/${consultationId}`, {
         headers: { Authorization: `Bearer ${token}` },
+    }).then((r) => r.json());
+
+export const createReferral = (token, data) =>
+    fetch(`${API}/api/v1/referrals`, {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
     }).then((r) => r.json());

@@ -1,6 +1,6 @@
 // src/pages/NewConsultationPage.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Box, Typography, Card, Button, TextField,
     Chip, CircularProgress, Collapse, Alert, Stepper, Step,
@@ -417,6 +417,7 @@ function EmergencyScreen({ onBack }) {
 export default function NewConsultationPage() {
     const { token } = useAuth();
     const navigate  = useNavigate();
+    const [searchParams] = useSearchParams();
 
     const [activeStep, setActiveStep]       = useState(0);
     const [consultation, setConsultation]   = useState(null);
@@ -425,6 +426,38 @@ export default function NewConsultationPage() {
     const [creating, setCreating]           = useState(false);
     const [createError, setCreateError]     = useState('');
     const [started, setStarted]             = useState(false);
+
+    // Resume an existing consultation via ?id=X&step=N
+    useEffect(() => {
+        const resumeId   = searchParams.get('id');
+        const resumeStep = parseInt(searchParams.get('step') || '1', 10);
+        if (!resumeId || !token) return;
+
+        setCreating(true);
+        fetch(`http://localhost:8084/api/consultations/${resumeId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(r => r.json())
+            .then(data => {
+                setConsultation(data);
+                setStarted(true);
+                // jump to correct step based on status
+                const status = data.status;
+                if (status === 'FORM_GENERATED' || status === 'PENDING_FORM') {
+                    setActiveStep(1);
+                } else if (status === 'FORM_COMPLETED' || status === 'DIAGNOSIS_PENDING') {
+                    // need to also load diagnosis detail
+                    setConsultDetail(data);
+                    setActiveStep(2);
+                } else if (status === 'EMERGENCY_REDIRECT') {
+                    setIsEmergency(true);
+                } else {
+                    setActiveStep(resumeStep - 1);
+                }
+            })
+            .catch(e => setCreateError('Could not resume consultation.'))
+            .finally(() => setCreating(false));
+    }, [searchParams, token]);
 
     const handleStart = async () => {
         setCreating(true); setCreateError('');

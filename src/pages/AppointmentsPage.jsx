@@ -8,7 +8,7 @@ import {
     EventOutlined, AccessTimeOutlined, CheckCircleOutlined,
     CancelOutlined, HourglassEmptyOutlined, DoNotDisturbOutlined,
     ScheduleOutlined, ArrowBackOutlined, CloseOutlined,
-    InfoOutlined, AddOutlined, WarningAmberOutlined,
+    InfoOutlined, WarningAmberOutlined,
     EditCalendarOutlined, PersonOutlined,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -132,7 +132,7 @@ function RescheduleDialog({ open, appt, token, onClose, onSuccess }) {
         }
     }, [token, dur]);
 
-    useEffect(() => { if (open) { setSelectedDate(addDays(new Date(), 1)); loadSlots(addDays(new Date(), 1)); } }, [open]);
+    useEffect(() => { if (open) { const d = addDays(new Date(), 1); setSelectedDate(d); loadSlots(d); } }, [open, loadSlots]);
 
     const handleConfirm = async () => {
         if (!selectedSlot) return;
@@ -281,15 +281,16 @@ function AppointmentCard({ appt, isPast, onCancel, onReschedule }) {
         try {
             await api.saveNotes(token, appt.id, noteText);
             setNoteEdit(false);
-        } catch { } finally { setSavingNote(false); }
+        } catch (_e) { /* note save failed silently */ } finally { setSavingNote(false); }
     };
     const statusCfg = APPT_STATUS[appt.status] || APPT_STATUS.SCHEDULED;
     const start     = appt.startTime || appt.start_time;
     const end       = appt.endTime   || appt.end_time;
     const dur       = appt.durationMinutes || appt.duration_minutes;
-    const doctor    = appt.doctor || {};
-    const doctorName = doctor.fullName || doctor.full_name || 'Doctor TBD';
-    const specialty  = doctor.specialty || doctor.specialization || '';
+    const doctorName = appt.doctorFirstName
+        ? `${appt.doctorFirstName} ${appt.doctorLastName || ''}`.trim()
+        : null;
+    const specialty  = appt.doctorSpecialization || '';
     const isToday    = new Date(start).toDateString() === new Date().toDateString();
     const canAct     = appt.status === 'SCHEDULED' && !isPast;
     const durCfg     = DUR_COLOR[dur] || DUR_COLOR[20];
@@ -335,7 +336,7 @@ function AppointmentCard({ appt, isPast, onCancel, onReschedule }) {
                                     width: 36, height: 36, flexShrink: 0,
                                     background: doctorName ? 'linear-gradient(135deg, #8B7355, #C4A882)' : '#E8DDD0',
                                     fontFamily: 'Cormorant Garamond, serif', fontSize: '0.95rem', fontWeight: 700,
-                                    color: doctorName !== 'Doctor TBD' ? '#fff' : '#A89070',
+                                    color: !!doctorName ? '#fff' : '#A89070',
                                 }}>
                                     {doctorName ? doctorName.charAt(0) : <PersonOutlined sx={{ fontSize: 18 }} />}
                                 </Avatar>
