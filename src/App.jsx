@@ -12,8 +12,9 @@ import ConsultationsPage from './pages/ConsultationsPage'
 import AppointmentsPage from './pages/AppointmentsPage'
 import PrescriptionsPage from './pages/PrescriptionsPage'
 import ReferralsPage from './pages/ReferralsPage'
+import DoctorsPage from "./pages/DoctorsPage.jsx";
 
-
+/* Layout cu sidebar — folosit pentru toate paginile protejate */
 function AppLayout({ children }) {
     return (
         <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -71,6 +72,11 @@ export default function App() {
             <Route path="/referrals" element={
                 <ProtectedRoute>
                     <AppLayout><ReferralsPage /></AppLayout>
+                </ProtectedRoute>
+            } />
+            <Route path="/doctors" element={
+                <ProtectedRoute>
+                    <AppLayout><DoctorsPage/></AppLayout>
                 </ProtectedRoute>
             } />
 

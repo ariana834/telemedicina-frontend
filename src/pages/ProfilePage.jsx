@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
     Box, Typography, TextField, Button, MenuItem,
     Grid, Alert, CircularProgress, Divider,
-    Stepper, Step, StepLabel, Chip, IconButton
+    Stepper, Step, StepLabel, Chip, IconButton, Stack, Avatar
 } from '@mui/material'
 import AddIcon    from '@mui/icons-material/Add'
 import DeleteIcon from "@mui/icons-material/Delete"
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { createProfile } from '../api/patient'
+import { createProfile, updateProfile } from '../api/patient'
 import axios from 'axios'
 import { API } from '../api/auth'
 
@@ -46,13 +46,32 @@ export default function ProfilePage() {
     const [newCondition, setNewCondition] = useState({ conditionName: '', severity: 'MILD', diagnosedDate: '' })
     const [guardian,     setGuardian]     = useState({ firstName: '', lastName: '', phone: '', email: '', relationship: 'PARENT' })
 
+    // Previne useEffect sa redirecteze la Guardian in timp ce suntem in flow-ul de creare
+    const flowStarted = useRef(false)
+
+    const [viewConditions, setViewConditions] = useState([])
+    const [viewGuardian,   setViewGuardian]   = useState(null)
+
     const set      = (f) => (e) => setForm(prev => ({ ...prev, [f]: e.target.value }))
     const setGuard = (f) => (e) => setGuardian(prev => ({ ...prev, [f]: e.target.value }))
     const setCond  = (f) => (e) => setNewCondition(prev => ({ ...prev, [f]: e.target.value }))
     const fieldSx  = { backgroundColor: '#FFFCF8' }
 
     useEffect(() => {
+        if (viewMode && profile) {
+            axios.get(`${API}/api/v1/patients/chronic-conditions`, authHeader(token))
+                .then(r => setViewConditions(r.data || [])).catch(() => {})
+            if (profile.ageCategory === 'CHILD') {
+                axios.get(`${API}/api/v1/patients/${profile.id}/guardian`, authHeader(token))
+                    .then(r => setViewGuardian(r.data)).catch(() => {})
+            }
+        }
+    }, [viewMode, profile, token])
+
+    useEffect(() => {
         const check = async () => {
+            // Daca am pornit deja flow-ul de creare, nu mai redirecta
+            if (flowStarted.current) { setChecking(false); return }
             if (!profile) { setChecking(false); return }
             if (profile.ageCategory !== 'CHILD') { setViewMode(true); setChecking(false); return }
             try {
@@ -75,13 +94,16 @@ export default function ProfilePage() {
             return
         }
         setError(''); setLoading(true)
+        flowStarted.current = true  // blocheaza useEffect sa redirecteze
         try {
-            const res = await createProfile(token, {
+            const payload = {
                 firstName: form.firstName, lastName: form.lastName,
                 birthDate: form.birthDate, gender:    form.gender,
                 bloodType: form.bloodType || null, phone: form.phone || null,
                 cnp:       form.cnp       || null, address: form.address || null,
-            })
+            }
+            // Daca profilul exista deja → PUT (update), altfel → POST (create)
+            const res = profile ? await updateProfile(token, payload) : await createProfile(token, payload)
             refreshProfile()
             setPatientId(res.data.id)
             setAgeCategory(res.data.ageCategory)
@@ -128,33 +150,125 @@ export default function ProfilePage() {
     return (
         <Box sx={{ flex: 1, minHeight: '100vh', backgroundColor: '#F7F3EE' }}>
 
-            {/* ── VIEW MODE ── */}
+            {/* ── VIEW MODE — Medical File ── */}
             {viewMode && (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4, minHeight: '100vh' }}>
-                    <Box sx={{ textAlign: 'center', maxWidth: 420 }}>
-                        <Typography sx={{ fontSize: '4rem', mb: 2 }}>✅</Typography>
-                        <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: '2rem', fontWeight: 600, color: '#2C2416', mb: 1 }}>
-                            Profile complete
-                        </Typography>
-                        <Typography variant="body1" sx={{ color: '#2C2416', fontWeight: 500, mb: 0.5 }}>
-                            {profile?.firstName} {profile?.lastName}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                            {profile?.gender?.charAt(0) + profile?.gender?.slice(1).toLowerCase()} · Blood type: {profile?.bloodType ?? 'not set'}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-                            {profile?.phone ?? 'No phone'} · {profile?.address ?? 'No address'}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                <Box sx={{ p: { xs: 2.5, sm: 4 }, maxWidth: 700, mx: 'auto' }}>
+
+                    {/* Header */}
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-end" sx={{ mb: 3 }}>
+                        <Box>
+                            <Typography sx={{ fontFamily: 'Lato, sans-serif', fontSize: '0.72rem', color: '#A89070', letterSpacing: '0.12em', textTransform: 'uppercase', mb: 0.5 }}>
+                                Patient Record
+                            </Typography>
+                            <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: '2rem', fontWeight: 700, color: '#2C2416', lineHeight: 1.1 }}>
+                                Medical Profile
+                            </Typography>
+                        </Box>
+                        <Stack direction="row" spacing={1.5}>
                             <Button variant="outlined" onClick={() => navigate('/dashboard')}
-                                    sx={{ borderColor: '#D4C5B0', color: 'text.secondary' }}>
-                                Back to Dashboard
+                                    sx={{ borderColor: '#C4A882', color: '#8B7355', borderRadius: 2, fontFamily: 'Lato, sans-serif', fontWeight: 600, textTransform: 'none' }}>
+                                Dashboard
                             </Button>
-                            <Button variant="contained" color="primary" onClick={() => setViewMode(false)}>
+                            <Button variant="contained" onClick={() => { flowStarted.current = false; setViewMode(false); }}
+                                    sx={{ bgcolor: '#8B7355', borderRadius: 2, fontFamily: 'Lato, sans-serif', fontWeight: 600, textTransform: 'none', '&:hover': { bgcolor: '#6D5840' } }}>
                                 Edit Profile
                             </Button>
+                        </Stack>
+                    </Stack>
+
+                    {/* Identity card */}
+                    <Box sx={{ borderRadius: 3, overflow: 'hidden', border: '1px solid #E8DDD0', mb: 2.5 }}>
+                        {/* Colored header strip */}
+                        <Box sx={{ background: 'linear-gradient(135deg, #3D2B1F 0%, #8B7355 100%)', px: 3, py: 2.5 }}>
+                            <Stack direction="row" alignItems="center" spacing={2.5}>
+                                <Avatar sx={{ width: 56, height: 56, background: 'rgba(255,252,248,0.2)', fontFamily: '"Cormorant Garamond", serif', fontSize: '1.5rem', fontWeight: 700, color: '#FFFCF8', border: '2px solid rgba(255,252,248,0.3)' }}>
+                                    {profile?.firstName?.[0]}{profile?.lastName?.[0]}
+                                </Avatar>
+                                <Box>
+                                    <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: '1.5rem', fontWeight: 700, color: '#FFFCF8', lineHeight: 1.2 }}>
+                                        {profile?.firstName} {profile?.lastName}
+                                    </Typography>
+                                    <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+                                        <Chip label={profile?.ageCategory} size="small" sx={{ bgcolor: 'rgba(255,252,248,0.15)', color: '#FFFCF8', fontFamily: 'Lato, sans-serif', fontSize: '0.65rem', fontWeight: 700, height: 20 }} />
+                                        <Chip label={profile?.gender?.charAt(0) + profile?.gender?.slice(1).toLowerCase()} size="small" sx={{ bgcolor: 'rgba(255,252,248,0.15)', color: '#FFFCF8', fontFamily: 'Lato, sans-serif', fontSize: '0.65rem', fontWeight: 700, height: 20 }} />
+                                        {profile?.bloodType && <Chip label={`Blood: ${profile.bloodType}`} size="small" sx={{ bgcolor: 'rgba(220,50,50,0.3)', color: '#FFFCF8', fontFamily: 'Lato, sans-serif', fontSize: '0.65rem', fontWeight: 700, height: 20 }} />}
+                                    </Stack>
+                                </Box>
+                            </Stack>
+                        </Box>
+
+                        {/* Info grid */}
+                        <Box sx={{ bgcolor: '#FFFCF8', p: 3 }}>
+                            <Grid container spacing={2.5}>
+                                {[
+                                    { label: 'Date of Birth', value: profile?.birthDate ? new Date(profile.birthDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' },
+                                    { label: 'Age',           value: profile?.age ? `${profile.age} years old` : '—' },
+                                    { label: 'CNP',           value: profile?.cnp ?? '—' },
+                                    { label: 'Phone',         value: profile?.phone ?? '—' },
+                                    { label: 'Address',       value: profile?.address ?? '—', full: true },
+                                ].map(({ label, value, full }) => (
+                                    <Grid item xs={12} sm={full ? 12 : 6} key={label}>
+                                        <Typography sx={{ fontFamily: 'Lato, sans-serif', fontSize: '0.65rem', color: '#A89070', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.4 }}>
+                                            {label}
+                                        </Typography>
+                                        <Typography sx={{ fontFamily: 'Lato, sans-serif', fontSize: '0.9rem', color: '#2C2416', fontWeight: 600 }}>
+                                            {value}
+                                        </Typography>
+                                    </Grid>
+                                ))}
+                            </Grid>
                         </Box>
                     </Box>
+
+                    {/* Chronic conditions */}
+                    <Box sx={{ borderRadius: 3, border: '1px solid #E8DDD0', bgcolor: '#FFFCF8', p: 2.5, mb: 2.5 }}>
+                        <Typography sx={{ fontFamily: 'Lato, sans-serif', fontSize: '0.65rem', color: '#A89070', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
+                            Chronic Conditions
+                        </Typography>
+                        {viewConditions.length === 0 ? (
+                            <Typography sx={{ fontFamily: 'Lato, sans-serif', fontSize: '0.85rem', color: '#C4A882', fontStyle: 'italic' }}>
+                                No chronic conditions recorded
+                            </Typography>
+                        ) : (
+                            <Stack spacing={1}>
+                                {viewConditions.map((c, i) => (
+                                    <Stack key={i} direction="row" alignItems="center" justifyContent="space-between"
+                                           sx={{ p: 1.5, borderRadius: 2, bgcolor: '#F5EFE6', border: '1px solid #E8DDD0' }}>
+                                        <Typography sx={{ fontFamily: 'Lato, sans-serif', fontSize: '0.85rem', fontWeight: 600, color: '#2C2416' }}>
+                                            {c.conditionName}
+                                        </Typography>
+                                        <Chip label={c.severity} size="small" sx={{
+                                            fontFamily: 'Lato, sans-serif', fontSize: '0.68rem', fontWeight: 700, height: 22,
+                                            bgcolor: c.severity === 'SEVERE' ? '#FFEBEE' : c.severity === 'MODERATE' ? '#FFF3E0' : '#E8F5E9',
+                                            color:   c.severity === 'SEVERE' ? '#B71C1C' : c.severity === 'MODERATE' ? '#E65100' : '#2E7D32',
+                                        }} />
+                                    </Stack>
+                                ))}
+                            </Stack>
+                        )}
+                    </Box>
+
+                    {/* Guardian (only for CHILD) */}
+                    {profile?.ageCategory === 'CHILD' && viewGuardian && (
+                        <Box sx={{ borderRadius: 3, border: '1px solid #E8DDD0', bgcolor: '#FFFCF8', p: 2.5 }}>
+                            <Typography sx={{ fontFamily: 'Lato, sans-serif', fontSize: '0.65rem', color: '#A89070', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1.5 }}>
+                                Guardian
+                            </Typography>
+                            <Grid container spacing={2}>
+                                {[
+                                    { label: 'Name',         value: `${viewGuardian.firstName} ${viewGuardian.lastName}` },
+                                    { label: 'Relationship', value: viewGuardian.relationship?.replace('_', ' ') },
+                                    { label: 'Phone',        value: viewGuardian.phone ?? '—' },
+                                    { label: 'Email',        value: viewGuardian.email ?? '—' },
+                                ].map(({ label, value }) => (
+                                    <Grid item xs={12} sm={6} key={label}>
+                                        <Typography sx={{ fontFamily: 'Lato, sans-serif', fontSize: '0.65rem', color: '#A89070', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.4 }}>{label}</Typography>
+                                        <Typography sx={{ fontFamily: 'Lato, sans-serif', fontSize: '0.88rem', color: '#2C2416', fontWeight: 600 }}>{value}</Typography>
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        </Box>
+                    )}
                 </Box>
             )}
 

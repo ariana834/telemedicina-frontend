@@ -263,6 +263,19 @@ function DiagnosisStep({ consultationDetail, consultationId, onDone }) {
     const primary    = diagnoses[0];
     const secondary  = diagnoses[1];
 
+    // Diagnoses eligible for auto prescription (must match backend list)
+    const ELIGIBLE_FOR_PRESCRIPTION = [
+        'Upper Respiratory Tract Infection (Cold)',
+        'Influenza (Flu)',
+        'Food Poisoning',
+        'Acute Gastroenteritis',
+    ];
+    const isEligibleForPrescription = primary && ELIGIBLE_FOR_PRESCRIPTION.includes(primary.diagnosisName);
+    // Effective action: even if SIMPLE, if diagnosis not eligible → schedule
+    const effectiveAction = (complexity === 'SIMPLE' && isEligibleForPrescription) ? 'PRESCRIBE'
+        : (complexity === 'EMERGENCY') ? 'EMERGENCY'
+            : 'SCHEDULE';
+
     const handleSchedule = async () => {
         setLoading(true); setError('');
         try { const res = await scheduleAppointment(token, consultationId); setResult({ type: 'appointment', id: res.appointmentId }); }
@@ -354,11 +367,15 @@ function DiagnosisStep({ consultationDetail, consultationId, onDone }) {
                         </Button>
                     </Card>
                 )}
-                {(complexity === 'MEDIUM' || complexity === 'COMPLEX') && (
+                {(effectiveAction === 'SCHEDULE' && complexity !== 'EMERGENCY') && (
                     <Card elevation={0} sx={{ border: '1.5px solid #EDE5D8', borderRadius: 2, bgcolor: '#FFFCF8', p: 2.5 }}>
                         <Typography sx={{ fontFamily: 'Lato', fontWeight: 700, color: '#5C4A32', mb: 0.5 }}>Schedule a Consultation</Typography>
                         <Typography sx={{ fontFamily: 'Lato', fontSize: '0.85rem', color: '#9E8B72', mb: 2 }}>
-                            {complexity === 'COMPLEX' ? 'Your case requires a detailed evaluation. We will find the next available specialist slot.' : 'A doctor consultation is recommended. Our system will find the earliest available appointment.'}
+                            {complexity === 'COMPLEX'
+                                ? 'Your case requires a detailed evaluation. We will find the next available specialist slot.'
+                                : !isEligibleForPrescription && complexity === 'SIMPLE'
+                                    ? 'Your symptoms require a doctor evaluation. We will find the earliest available appointment with the right specialist.'
+                                    : 'A doctor consultation is recommended. Our system will find the earliest available appointment.'}
                         </Typography>
                         <Button fullWidth variant="contained" disabled={loading} onClick={handleSchedule} startIcon={loading ? <CircularProgress size={16} sx={{ color: 'inherit' }} /> : <EventIcon />}
                                 sx={{ fontFamily: 'Lato', fontWeight: 700, py: 1.2, borderRadius: 2, bgcolor: '#8B7355', '&:hover': { bgcolor: '#7A6348' } }}>

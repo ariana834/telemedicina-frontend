@@ -7,6 +7,7 @@ import CalendarIcon      from '@mui/icons-material/CalendarMonthRounded'
 import PrescriptionIcon  from '@mui/icons-material/DescriptionRounded'
 import SubscriptionIcon  from '@mui/icons-material/CreditCardRounded'
 import ReferralIcon      from '@mui/icons-material/ScienceRounded'
+import DoctorsIcon       from '@mui/icons-material/MedicalInformationRounded'
 import LogoutIcon        from '@mui/icons-material/LogoutRounded'
 import AddIcon           from '@mui/icons-material/AddRounded'
 
@@ -16,6 +17,7 @@ const navItems = [
     { label: 'Appointments',  icon: <CalendarIcon />,     path: '/appointments' },
     { label: 'Prescriptions', icon: <PrescriptionIcon />, path: '/prescriptions' },
     { label: 'Referrals',     icon: <ReferralIcon />,     path: '/referrals' },
+    { label: 'Doctors',       icon: <DoctorsIcon />,      path: '/doctors' },
     { label: 'Subscription',  icon: <SubscriptionIcon />, path: '/subscription' },
 ]
 
